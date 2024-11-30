@@ -4,7 +4,7 @@ This application allows you to run an Internet Speed Test and see test measureme
 <h1 align="center">Runner Logo</h1>
 
 <p align="center">
-  <img src="runnerlo.png" alt="SEFIDE Logo" width="150" height="150">
+  <img src="runnerlo.png" alt="Runner Logo" width="150" height="150">
 </p>
 
 
