@@ -1,0 +1,13 @@
+Source: runner
+Section: python
+Priority: optional
+Maintainer: Fatih ÖNDER <fatih@algyazilim.com>
+Build-Depends: debhelper (>= 13), python3, python3-pyqt5, speedtest-cli, python3:any
+Standards-Version: 4.1.5
+Homepage: https://algyazilim.com
+
+Package: runner
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3-pyqt5, speedtest-cli, python3:any
+Description: Bu uygulama, İnternet Hız Testi Yapmanızı ve Test Ölçümlerini Görmenizi Sağlar.
+

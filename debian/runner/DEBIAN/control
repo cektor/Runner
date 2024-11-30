@@ -1,0 +1,10 @@
+Package: runner
+Version: 1.0-1
+Architecture: all
+Maintainer: Fatih ÖNDER <fatih@algyazilim.com>
+Installed-Size: 72
+Depends: python3-pyqt5, speedtest-cli, python3:any
+Section: python
+Priority: optional
+Homepage: https://algyazilim.com
+Description: Bu uygulama, İnternet Hız Testi Yapmanızı ve Test Ölçümlerini Görmenizi Sağlar.

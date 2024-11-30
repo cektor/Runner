@@ -1,0 +1,4 @@
+#!/bin/bash
+runner.py usr/bin/
+runner.desktop usr/share/applications/
+debian/runnerlo.png /usr/share/icons/hicolor/48x48/apps/

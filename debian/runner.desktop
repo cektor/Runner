@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Runner
+Comment=Internet Speed Test Tool
+Exec=python3 /usr/bin/runner.py
+Icon=/usr/share/icons/hicolor/48x48/apps/runnerlo.png
+Terminal=false
+Type=Application
+Categories=Network
+
+Name[tr_TR]=Runner
