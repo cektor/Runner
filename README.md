@@ -1,3 +1,7 @@
+<a href="https://github.com/pedromxavier/flag-badges">
+    <img src="https://raw.githubusercontent.com/pedromxavier/flag-badges/main/badges/TR.svg" alt="made in TR">
+</a>
+
 # Runner
 This application allows you to run an Internet Speed Test and see test measurements. Cross Platform Operable with Graphical User Interface.
 
