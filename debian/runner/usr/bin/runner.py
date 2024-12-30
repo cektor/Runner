@@ -44,26 +44,28 @@ class SpeedTestThread(QThread):
             st = speedtest.Speedtest()
 
             # En iyi sunucuyu seçiyoruz
-            self.progress_signal.emit(10)  # Başlangıç ilerlemesi
-            st.get_best_server()  # En iyi sunucu seçilir
-            self.progress_signal.emit(30)  # Sunucu seçildi
+            self.progress_signal.emit(10)
+            st.get_best_server()
+            self.progress_signal.emit(30)
 
             # Ping bilgisi alınıyor
             ping = st.results.ping
-            # İndirme hızını Mbps cinsinden alıyoruz
-            download_speed = st.download() / 1_000_000
-            self.progress_signal.emit(60)  # İndirme testi tamamlanmak üzere
+            
+            # İndirme hızı testi (bit/s'den Mbps'e çevirme)
+            download_bits = st.download()
+            download_speed = round(download_bits / 1024 / 1024, 2)  # bits to Mbps
+            self.progress_signal.emit(60)
 
-            # Yükleme hızını Mbps cinsinden alıyoruz
-            upload_speed = st.upload() / 1_000_000
-            self.progress_signal.emit(90)  # Yükleme testi tamamlanmak üzere
+            # Yükleme hızı testi (bit/s'den Mbps'e çevirme)
+            upload_bits = st.upload()
+            upload_speed = round(upload_bits / 1024 / 1024, 2)  # bits to Mbps
+            self.progress_signal.emit(90)
 
             # Test sonuçlarını sinyalle gönderiyoruz
             self.speed_test_completed.emit(ping, download_speed, upload_speed)
-            self.progress_signal.emit(100)  # Test tamamlandığında %100
+            self.progress_signal.emit(100)
 
         except Exception as e:
-            # Hata durumunda hata mesajını sinyalliyoruz
             self.speed_test_failed.emit(f"Speedtest failed: {str(e)}")
 
 
@@ -227,7 +229,7 @@ class SpeedTestApp(QMainWindow):
         self.upload_label.setText("Yükleme: 0 Mbps")
 
         self.connection_status_label.setText("Bağlantı Durumu: Ölçüyor...")
-        self.start_button.setEnabled(False)
+        self.start_button.setVisible(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self.speed_test_thread.start()
@@ -240,12 +242,12 @@ class SpeedTestApp(QMainWindow):
         self.download_label.setText(f"İndirme: {download_speed:.2f} Mbps")
         self.upload_label.setText(f"Yükleme: {upload_speed:.2f} Mbps")
         self.connection_status_label.setText("Bağlantı Durumu: Tamamlandı")
-        self.start_button.setEnabled(True)
+        self.start_button.setVisible(True)
         self.progress_bar.setVisible(False)
 
     def handle_speed_test_error(self, error_message):
         self.connection_status_label.setText(f"Bağlantı Durumu: Hata! {error_message}")
-        self.start_button.setEnabled(True)
+        self.start_button.setVisible(True)
         self.progress_bar.setVisible(False)
 
     def show_about_dialog(self):
@@ -255,6 +257,8 @@ class SpeedTestApp(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    if ICON_PATH:
+        app.setWindowIcon(QIcon(ICON_PATH))
     window = SpeedTestApp()
     window.show()
     sys.exit(app.exec_())
