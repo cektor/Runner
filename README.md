@@ -120,7 +120,8 @@ wget -O Setup_Linux64.deb https://github.com/cektor/Runner/releases/download/1.0
 
 Windows Installer CMD (PowerShell): To Install from Windows CMD with Direct Connection.
 ```bash
-powershell -Command "Invoke-WebRequest -Uri 'https://github.com/cektor/Runner/releases/download/1.00/Setup_Win64.exe' -OutFile 'Setup_Win64.exe'" && start /wait Setup_Win64.exe
+powershell -Command "Invoke-WebRequest -Uri 'https://github.com/cektor/Runner/releases/download/1.00/Setup_Win64.exe' -OutFile 'Setup_Win64.exe'; Start-Process -FilePath '.\Setup_Win64.exe' -Wait"
+
 ```
 
 Release Page: https://github.com/cektor/Runner/releases/tag/1.00
