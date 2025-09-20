@@ -2,11 +2,83 @@ import os
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton,
-    QProgressBar, QMessageBox, QDialog, QHBoxLayout
+    QProgressBar, QDialog, QHBoxLayout, QComboBox
 )
 from PyQt5.QtGui import QFont, QIcon, QPixmap
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSettings
+
+# PyInstaller uyumluluğu için
+try:
+    import builtins
+    sys.modules['__builtin__'] = builtins
+except ImportError:
+    pass
+
 import speedtest
+
+# Çeviri sözlüğü
+TRANSLATIONS = {
+    'tr': {
+        'window_title': 'Runner SpeedTest',
+        'connection_status': 'Bağlantı Durumu: Bağlantı Bekleniyor...',
+        'connection_measuring': 'Bağlantı Durumu: Ölçüyor...',
+        'connection_completed': 'Bağlantı Durumu: Tamamlandı',
+        'connection_error': 'Bağlantı Durumu: Hata!',
+        'ping': 'Ping',
+        'download': 'İndirme',
+        'upload': 'Yükleme',
+        'start': 'Başlat',
+        'about': 'Hakkında',
+        'close': 'Kapat',
+        'language': 'Dil',
+        'logo_not_found': 'Logo bulunamadı.',
+        'speedtest_failed': 'Speedtest başarısız',
+        'about_text': '''
+            <h2>Runner SpeedTest</h2>
+            <p>Bu uygulama, internet bağlantı hızınızı ölçmek için geliştirilmiştir.</p>
+            <p><b>Geliştirici:</b> ALG Yazılım Inc.©</p>
+            <p>www.algyazilim.com | info@algyazilim.com</p>
+            </br>
+            <p>Fatih ÖNDER (CekToR) | fatih@algyazilim.com</p>
+            <p><b>GitHub:</b> https://github.com/cektor</p>
+            </br>
+            </br>
+            <p><b>ALG Yazılım</b> Pardus'a Göç'ü Destekler.</p>
+            </br>
+            <p><b>Sürüm:</b> 1.0</p>
+        '''
+    },
+    'en': {
+        'window_title': 'Runner SpeedTest',
+        'connection_status': 'Connection Status: Waiting for Connection...',
+        'connection_measuring': 'Connection Status: Measuring...',
+        'connection_completed': 'Connection Status: Completed',
+        'connection_error': 'Connection Status: Error!',
+        'ping': 'Ping',
+        'download': 'Download',
+        'upload': 'Upload',
+        'start': 'Start',
+        'about': 'About',
+        'close': 'Close',
+        'language': 'Language',
+        'logo_not_found': 'Logo not found.',
+        'speedtest_failed': 'Speedtest failed',
+        'about_text': '''
+            <h2>Runner SpeedTest</h2>
+            <p>This application is developed to measure your internet connection speed.</p>
+            <p><b>Developer:</b> ALG Yazılım Inc.©</p>
+            <p>www.algyazilim.com | info@algyazilim.com</p>
+            </br>
+            <p>Fatih ÖNDER (CekToR) | fatih@algyazilim.com</p>
+            <p><b>GitHub:</b> https://github.com/cektor</p>
+            </br>
+            </br>
+            <p><b>ALG Yazılım</b> Supports Migration to Pardus.</p>
+            </br>
+            <p><b>Version:</b> 1.0</p>
+        '''
+    }
+}
 
 
 def get_logo_path():
@@ -20,13 +92,7 @@ def get_logo_path():
 
 
 def get_icon_path():
-    if hasattr(sys, "_MEIPASS"):  # PyInstaller ile paketlenmişse
-        return os.path.join(sys._MEIPASS, "runnerlo.png")
-    elif os.path.exists("/usr/share/icons/hicolor/48x48/apps/runnerlo.png"):
-        return "/usr/share/icons/hicolor/48x48/apps/runnerlo.png"
-    elif os.path.exists("runnerlo.png"):
-        return "runnerlo.png"
-    return None
+    return get_logo_path()
 
 
 LOGO_PATH = get_logo_path()
@@ -34,46 +100,44 @@ ICON_PATH = get_icon_path()
 
 
 class SpeedTestThread(QThread):
-    speed_test_completed = pyqtSignal(float, float, float)  # Ping, Download, Upload
+    speed_test_completed = pyqtSignal(float, float, float)
     speed_test_failed = pyqtSignal(str)
-    progress_signal = pyqtSignal(int)  # Test sırasında ilerleme bilgisini iletmek için
+    progress_signal = pyqtSignal(int)
+
+    def __init__(self, language='tr'):
+        super().__init__()
+        self.language = language
 
     def run(self):
         try:
-            # Speedtest objesini oluşturuyoruz
             st = speedtest.Speedtest()
-
-            # En iyi sunucuyu seçiyoruz
             self.progress_signal.emit(10)
+            
             st.get_best_server()
             self.progress_signal.emit(30)
-
-            # Ping bilgisi alınıyor
-            ping = st.results.ping
             
-            # İndirme hızı testi (bit/s'den Mbps'e çevirme)
+            ping = st.results.ping if st.results.ping else 0
+            
             download_bits = st.download()
-            download_speed = round(download_bits / 1024 / 1024, 2)  # bits to Mbps
-            self.progress_signal.emit(60)
-
-            # Yükleme hızı testi (bit/s'den Mbps'e çevirme)
+            download_speed = round(download_bits / 1024 / 1024, 2)
+            self.progress_signal.emit(70)
+            
             upload_bits = st.upload()
-            upload_speed = round(upload_bits / 1024 / 1024, 2)  # bits to Mbps
-            self.progress_signal.emit(90)
-
-            # Test sonuçlarını sinyalle gönderiyoruz
-            self.speed_test_completed.emit(ping, download_speed, upload_speed)
+            upload_speed = round(upload_bits / 1024 / 1024, 2)
             self.progress_signal.emit(100)
-
+            
+            self.speed_test_completed.emit(ping, download_speed, upload_speed)
+            
         except Exception as e:
-            self.speed_test_failed.emit(f"Speedtest failed: {str(e)}")
+            error_msg = f"{TRANSLATIONS[self.language]['speedtest_failed']}: {str(e)}"
+            self.speed_test_failed.emit(error_msg)
 
 
 class AboutDialog(QDialog):
-    """Hakkında penceresi."""
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, language='tr'):
         super().__init__(parent)
-        self.setWindowTitle("Hakkında")
+        self.language = language
+        self.setWindowTitle(TRANSLATIONS[language]['about'])
         self.setFixedSize(300, 330)
         self.setStyleSheet("""
             background-color: #0f2734;
@@ -82,27 +146,12 @@ class AboutDialog(QDialog):
         """)
 
         layout = QVBoxLayout(self)
-        about_label = QLabel(
-            """
-            <h2>Runner SpeedTest</h2>
-            <p>Bu uygulama, internet bağlantı hızınızı ölçmek için geliştirilmiştir.</p>
-            <p><b>Geliştirici:</b> ALG Yazılım Inc.©</p>
-            <p>www.algyazilim.com | info@algyazilim.com</p>
-            </br>
-            <p>Fatih ÖNDER (CekToR) | fatih@algyazilim.com</p>
-            <p><b>GitHub:</b> https://github.com/cektor</p>
-            </br>
-            </br>
-            <p><b>ALG Yazılım</b> Pardus'a Göç'ü Destekler.</p>
-            </br>
-            <p><b>Sürüm:</b> 1.0</p>
-            """
-        )
+        about_label = QLabel(TRANSLATIONS[language]['about_text'])
         about_label.setAlignment(Qt.AlignCenter)
         about_label.setWordWrap(True)
         layout.addWidget(about_label)
 
-        close_button = QPushButton("Kapat")
+        close_button = QPushButton(TRANSLATIONS[language]['close'])
         close_button.clicked.connect(self.close)
         close_button.setStyleSheet("""
             background-color: #7d26b2;
@@ -114,56 +163,70 @@ class AboutDialog(QDialog):
         close_button.setFixedSize(100, 40)
         close_button.setFont(QFont("Arial", 12))
 
-        # Butonu ortalamak için bir yatay layout kullanalım
         close_layout = QHBoxLayout()
-        close_layout.addStretch()  # Sol boşluk
+        close_layout.addStretch()
         close_layout.addWidget(close_button)
-        close_layout.addStretch()  # Sağ boşluk
-
+        close_layout.addStretch()
         layout.addLayout(close_layout)
-
 
 
 class SpeedTestApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Runner SpeedTest")
+        
+        # QSettings ile dil ayarını yükle
+        self.settings = QSettings('ALGYazilim', 'RunnerSpeedTest')
+        self.language = self.settings.value('language', 'tr')
+        
         self.setGeometry(800, 200, 800, 600)
         self.setStyleSheet("""
             background-color: #0f2734;     
             color: white;
             font-family: 'Arial', sans-serif;
         """)
-        self.setFixedSize(330, 550)  # Sabit boyut (width, height)
+        self.setFixedSize(330, 580)
 
-        # Uygulama ikonu
         if ICON_PATH:
             self.setWindowIcon(QIcon(ICON_PATH))
 
-        # Ana widget ve layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
         layout.setAlignment(Qt.AlignCenter)
 
-        # Logo
+        # Dil seçimi
+        lang_layout = QHBoxLayout()
+        lang_label = QLabel()
+        self.language_combo = QComboBox()
+        self.language_combo.addItems(['Türkçe', 'English'])
+        self.language_combo.setCurrentIndex(0 if self.language == 'tr' else 1)
+        self.language_combo.currentTextChanged.connect(self.change_language)
+        self.language_combo.setStyleSheet("""
+            background-color: #34495e;
+            color: white;
+            border-radius: 5px;
+            padding: 5px;
+        """)
+        lang_layout.addWidget(lang_label)
+        lang_layout.addWidget(self.language_combo)
+        lang_layout.addStretch()
+        layout.addLayout(lang_layout)
+
         self.logo_label = QLabel()
         self.set_logo()
         self.logo_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.logo_label)
 
-        # Bağlantı durumu etiketi
-        self.connection_status_label = QLabel("Bağlantı Durumu: Bağlantı Bekleniyor...")
+        self.connection_status_label = QLabel()
         self.connection_status_label.setWordWrap(True)
         self.connection_status_label.setFont(QFont("Arial", 14))
         self.connection_status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.connection_status_label)
 
-        # Ping, Download ve Upload hız etiketleri
-        self.ping_label = QLabel("Ping: 0 ms")
-        self.download_label = QLabel("İndirme: 0 Mbps")
-        self.upload_label = QLabel("Yükleme: 0 Mbps")
+        self.ping_label = QLabel()
+        self.download_label = QLabel()
+        self.upload_label = QLabel()
 
         for label in [self.ping_label, self.download_label, self.upload_label]:
             label.setFont(QFont("Arial", 16))
@@ -171,8 +234,7 @@ class SpeedTestApp(QMainWindow):
             label.setStyleSheet("border: 2px solid #8e44ad; border-radius: 10px; padding: 10px;")
             layout.addWidget(label)
 
-        # Test Başlat Butonu
-        self.start_button = QPushButton("Başlat")
+        self.start_button = QPushButton()
         self.start_button.setFont(QFont("Arial", 16))
         self.start_button.setStyleSheet("""
             background-color: #7d26b2; 
@@ -184,8 +246,7 @@ class SpeedTestApp(QMainWindow):
         self.start_button.clicked.connect(self.start_speed_test)
         layout.addWidget(self.start_button)
 
-        # Hakkında Butonu
-        self.about_button = QPushButton("Hakkında")
+        self.about_button = QPushButton()
         self.about_button.setFont(QFont("Arial", 10))
         self.about_button.setStyleSheet("""
             background-color: #34495e; 
@@ -196,7 +257,6 @@ class SpeedTestApp(QMainWindow):
         self.about_button.clicked.connect(self.show_about_dialog)
         layout.addWidget(self.about_button)
 
-        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setVisible(False)
@@ -209,26 +269,42 @@ class SpeedTestApp(QMainWindow):
         """)
         layout.addWidget(self.progress_bar)
 
-        # Hız testi iş parçacığı
-        self.speed_test_thread = SpeedTestThread()
+        self.speed_test_thread = SpeedTestThread(self.language)
         self.speed_test_thread.speed_test_completed.connect(self.display_speed_test_results)
         self.speed_test_thread.speed_test_failed.connect(self.handle_speed_test_error)
         self.speed_test_thread.progress_signal.connect(self.update_progress_bar)
+        
+        # UI'yi güncelle
+        self.update_ui_language()
+
+    def change_language(self, text):
+        self.language = 'tr' if text == 'Türkçe' else 'en'
+        self.settings.setValue('language', self.language)
+        self.speed_test_thread.language = self.language
+        self.update_ui_language()
+    
+    def update_ui_language(self):
+        self.setWindowTitle(TRANSLATIONS[self.language]['window_title'])
+        self.connection_status_label.setText(TRANSLATIONS[self.language]['connection_status'])
+        self.ping_label.setText(f"{TRANSLATIONS[self.language]['ping']}: 0 ms")
+        self.download_label.setText(f"{TRANSLATIONS[self.language]['download']}: 0 Mbps")
+        self.upload_label.setText(f"{TRANSLATIONS[self.language]['upload']}: 0 Mbps")
+        self.start_button.setText(TRANSLATIONS[self.language]['start'])
+        self.about_button.setText(TRANSLATIONS[self.language]['about'])
 
     def set_logo(self):
         if LOGO_PATH:
             self.logo_label.setPixmap(QPixmap(LOGO_PATH).scaled(200, 100, Qt.KeepAspectRatio))
         else:
-            self.logo_label.setText("Logo bulunamadı.")
+            self.logo_label.setText(TRANSLATIONS[self.language]['logo_not_found'])
             self.logo_label.setAlignment(Qt.AlignCenter)
 
     def start_speed_test(self):
-        # Etiketleri sıfırlıyoruz
-        self.ping_label.setText("Ping: 0 ms")
-        self.download_label.setText("İndirme: 0 Mbps")
-        self.upload_label.setText("Yükleme: 0 Mbps")
+        self.ping_label.setText(f"{TRANSLATIONS[self.language]['ping']}: 0 ms")
+        self.download_label.setText(f"{TRANSLATIONS[self.language]['download']}: 0 Mbps")
+        self.upload_label.setText(f"{TRANSLATIONS[self.language]['upload']}: 0 Mbps")
 
-        self.connection_status_label.setText("Bağlantı Durumu: Ölçüyor...")
+        self.connection_status_label.setText(TRANSLATIONS[self.language]['connection_measuring'])
         self.start_button.setVisible(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
@@ -238,20 +314,20 @@ class SpeedTestApp(QMainWindow):
         self.progress_bar.setValue(value)
 
     def display_speed_test_results(self, ping, download_speed, upload_speed):
-        self.ping_label.setText(f"Ping: {ping:.0f} ms")
-        self.download_label.setText(f"İndirme: {download_speed:.2f} Mbps")
-        self.upload_label.setText(f"Yükleme: {upload_speed:.2f} Mbps")
-        self.connection_status_label.setText("Bağlantı Durumu: Tamamlandı")
+        self.ping_label.setText(f"{TRANSLATIONS[self.language]['ping']}: {ping:.0f} ms")
+        self.download_label.setText(f"{TRANSLATIONS[self.language]['download']}: {download_speed:.2f} Mbps")
+        self.upload_label.setText(f"{TRANSLATIONS[self.language]['upload']}: {upload_speed:.2f} Mbps")
+        self.connection_status_label.setText(TRANSLATIONS[self.language]['connection_completed'])
         self.start_button.setVisible(True)
         self.progress_bar.setVisible(False)
 
     def handle_speed_test_error(self, error_message):
-        self.connection_status_label.setText(f"Bağlantı Durumu: Hata! {error_message}")
+        self.connection_status_label.setText(f"{TRANSLATIONS[self.language]['connection_error']} {error_message}")
         self.start_button.setVisible(True)
         self.progress_bar.setVisible(False)
 
     def show_about_dialog(self):
-        about_dialog = AboutDialog(self)
+        about_dialog = AboutDialog(self, self.language)
         about_dialog.exec_()
 
 
